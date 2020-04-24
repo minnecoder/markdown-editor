@@ -1,17 +1,33 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, Menu} = require('electron')
-const path = require('path')
+const {
+  app, BrowserWindow, dialog, Menu,
+} = require('electron');
+const fs = require('fs');
+const path = require('path');
 
-function createWindow () {
+function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
-  })
-  const isMac = process.platform === 'darwin'
+    // webPreferences: {
+    preload: path.join(__dirname, 'preload.js'),
+    // },
+  });
+
+
+  function openFile() {
+    dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+    }).then((result) => {
+      const fileContent = fs.readFileSync(result.filePaths[0]).toString();
+      console.log(fileContent);
+    }).catch((err) => console.log(err));
+  }
+
+
+  const isMac = process.platform === 'darwin';
   const template = [
     // { role: 'appMenu' }
     ...(isMac ? [{
@@ -25,18 +41,24 @@ function createWindow () {
         { role: 'hideothers' },
         { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' }
-      ]
+        { role: 'quit' },
+      ],
     }] : []),
     // { role: 'fileMenu' }
     {
       label: 'File',
       submenu: [
-        {label: "Open File"},
-        {label: "Open Folder"},
+        {
+          label: 'Open File',
+          accelerator: 'CmdOrCtrl+O',
+          click() {
+            openFile();
+          },
+        },
+        { label: 'Open Folder' },
         isMac ? { role: 'close' } : { role: 'quit' },
-        
-      ]
+
+      ],
     },
     // { role: 'editMenu' }
     {
@@ -57,15 +79,15 @@ function createWindow () {
             label: 'Speech',
             submenu: [
               { role: 'startspeaking' },
-              { role: 'stopspeaking' }
-            ]
-          }
+              { role: 'stopspeaking' },
+            ],
+          },
         ] : [
           { role: 'delete' },
           { type: 'separator' },
-          { role: 'selectAll' }
-        ])
-      ]
+          { role: 'selectAll' },
+        ]),
+      ],
     },
     // { role: 'viewMenu' }
     {
@@ -79,8 +101,8 @@ function createWindow () {
         { role: 'zoomin' },
         { role: 'zoomout' },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { role: 'togglefullscreen' },
+      ],
     },
     // { role: 'windowMenu' }
     {
@@ -92,32 +114,31 @@ function createWindow () {
           { type: 'separator' },
           { role: 'front' },
           { type: 'separator' },
-          { role: 'window' }
+          { role: 'window' },
         ] : [
-          { role: 'close' }
-        ])
-      ]
+          { role: 'close' },
+        ]),
+      ],
     },
     {
-      role: 'help',
+      label: 'Developer',
       submenu: [
         {
-          label: 'Learn More',
-          click: async () => {
-            const { shell } = require('electron')
-            await shell.openExternal('https://electronjs.org')
-          }
-        }
-      ]
-    }
-  ]
-const menu = Menu.buildFromTemplate(template)
-Menu.setApplicationMenu(menu)
-
+          label: 'Toggle Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+          click() {
+            mainWindow.webContents.toggleDevTools();
+          },
+        },
+      ],
+    },
+  ];
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 
 
   // and load the index.html of the app.
-  mainWindow.loadURL('http://localhost:3000')
+  mainWindow.loadURL('http://localhost:3000');
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
@@ -126,20 +147,20 @@ Menu.setApplicationMenu(menu)
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow);
 
 // Quit when all windows are closed.
-app.on('window-all-closed', function () {
+app.on('window-all-closed', () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') app.quit()
-})
+  if (process.platform !== 'darwin') app.quit();
+});
 
-app.on('activate', function () {
+app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) createWindow()
-})
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
